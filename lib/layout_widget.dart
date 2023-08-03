@@ -1,7 +1,5 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:outs_calculator/packing/packing.dart';
+import 'package:outs_calculator/packing.dart';
 
 class OutsLayoutWidget extends StatelessWidget {
   const OutsLayoutWidget(this._packing, {super.key});
@@ -10,24 +8,37 @@ class OutsLayoutWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _packing != null
-        ? LayoutBuilder(builder: (_, BoxConstraints contraints) {
-            var largeWidth = _packing!.layout.largeWidth;
-            var largeHeight = _packing!.layout.largeHeight;
-            var maxScaledWidth =
-                contraints.maxWidth - (contraints.maxWidth % largeWidth);
-            var maxScaledHeight =
-                contraints.maxHeight - (contraints.maxHeight % largeHeight);
+    // return _packing != null
+    //     ? LayoutBuilder(builder: (_, BoxConstraints contraints) {
+    //         var largeWidth = _packing!.layout.largeWidth;
+    //         var largeHeight = _packing!.layout.largeHeight;
+    //         var maxScaledWidth =
+    //             largeWidth * (contraints.maxWidth / largeWidth).floor();
+    //         var maxScaledHeight =
+    //             largeHeight * (contraints.maxHeight / largeHeight).floor();
 
-            return CustomPaint(
-              painter: LayoutPainter(_packing?.layout),
-              child: Container(
-                width: maxScaledWidth,
-                height: maxScaledHeight,
-              ),
-            );
-          })
-        : Container();
+    //         return CustomPaint(
+    //           painter: LayoutPainter(_packing?.layout),
+    //           child: SizedBox(
+    //             width: maxScaledWidth,
+    //             height: maxScaledHeight,
+    //           ),
+    //         );
+    //       })
+    //     : Container();
+    if (_packing != null) {
+      var largeWidth = _packing!.layout.largeWidth;
+      var largeHeight = _packing!.layout.largeHeight;
+      return AspectRatio(
+        aspectRatio: largeWidth / largeHeight,
+        child: CustomPaint(
+          painter: LayoutPainter(_packing!.layout),
+          size: const Size(double.infinity, double.infinity),
+        ),
+      );
+    } else {
+      return Container();
+    }
   }
 }
 

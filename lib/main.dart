@@ -1,11 +1,10 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:outs_calculator/layout_widget.dart';
-import 'package:outs_calculator/packing/packing.dart';
+import 'package:outs_calculator/packing.dart';
+import 'package:reactive_forms/reactive_forms.dart';
 
 void showLayoutGuidelines() {
   debugPaintSizeEnabled = true;
@@ -15,22 +14,74 @@ void main() {
   runApp(const MyApp());
 }
 
-enum SizeType {
-  large(name: "Parent Sheet"),
-  small(name: "Item");
+enum PaperSize {
+  small("Item"),
+  large("Parent");
 
   final String name;
 
-  const SizeType({required this.name});
+  const PaperSize(this.name);
 }
 
-enum DimensionType {
-  long(name: "Width"),
-  short(name: "Height");
+enum Dimension {
+  short("Width"),
+  long("Height");
 
   final String name;
 
-  const DimensionType({required this.name});
+  const Dimension(this.name);
+}
+
+Map<String, dynamic>? _dimensionValidate(AbstractControl<dynamic> control) {
+  return control.isNotNull && control.value is double && control.value! > 0.0
+      ? null
+      : {"dimension": true};
+}
+
+Map<String, dynamic>? paperSizesValidate(AbstractControl<dynamic> control) {
+  final formGroup = control as FormGroup;
+
+  double? largeWidth =
+      formGroup.control('${PaperSize.large.name}${Dimension.short.name}').value;
+  double? largeHeight =
+      formGroup.control('${PaperSize.large.name}${Dimension.long.name}').value;
+  double? smallWidth =
+      formGroup.control('${PaperSize.small.name}${Dimension.short.name}').value;
+  double? smallHeight =
+      formGroup.control('${PaperSize.small.name}${Dimension.long.name}').value;
+
+  bool largeValueCheck = largeWidth != null && largeHeight != null;
+  bool smallValueCheck = smallWidth != null && smallHeight != null;
+
+  if (largeValueCheck) {
+    if (largeWidth > largeHeight) {
+      return {PaperSize.large.name: true};
+    }
+  }
+
+  if (smallValueCheck) {
+    if (smallWidth > smallHeight) {
+      return {PaperSize.small.name: true};
+    }
+  }
+
+  if (largeValueCheck && smallValueCheck) {
+    var smallArea = smallWidth * smallHeight;
+    var largeArea = largeWidth * largeHeight;
+    if (smallArea > largeArea) {
+      return {"area": true};
+    }
+  }
+
+  return null;
+}
+
+FormControl<double> _inputFormControl() {
+  return FormControl<double>(validators: [
+    Validators.required,
+    Validators.pattern(r'[0-9]*\.?[0-9]*'),
+    Validators.delegate(_dimensionValidate),
+  ]);
 }
 
 class MyApp extends StatelessWidget {
@@ -60,91 +111,98 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  String msg = '';
+  final formGroup = FormGroup({
+    "${PaperSize.large.name}${Dimension.short.name}": _inputFormControl(),
+    "${PaperSize.large.name}${Dimension.long.name}": _inputFormControl(),
+    "${PaperSize.small.name}${Dimension.short.name}": _inputFormControl(),
+    "${PaperSize.small.name}${Dimension.long.name}": _inputFormControl()
+  }, validators: [
+    Validators.delegate(paperSizesValidate)
+  ]);
 
-  final largeShortControl = TextEditingController();
-  final largeLongControl = TextEditingController();
-  final smallShortControl = TextEditingController();
-  final smallLongControl = TextEditingController();
+  double? largeWidth;
+  double? largeHeight;
+  double? smallWidth;
+  double? smallHeight;
 
   Packing? packing;
 
-  Widget _textField(
-      BuildContext context, SizeType sizeType, DimensionType dimensionType) {
+  void _dimensionChanged(
+      PaperSize paperSize, Dimension dimension, double? mag) {
+    switch ((paperSize, dimension)) {
+      case (PaperSize.large, Dimension.short):
+        largeWidth = mag;
+        break;
+      case (PaperSize.large, Dimension.long):
+        largeHeight = mag;
+        break;
+      case (PaperSize.small, Dimension.short):
+        smallWidth = mag;
+        break;
+      case (PaperSize.small, Dimension.long):
+        smallHeight = mag;
+        break;
+    }
+  }
+
+  Widget _inputField(PaperSize paperSize, Dimension dimension) {
     return Expanded(
         child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            child: TextFormField(
-                keyboardType: TextInputType.number,
-                style: Theme.of(context).textTheme.bodyMedium,
-                maxLines: 1,
-                textAlignVertical: TextAlignVertical.top,
-                textAlign: TextAlign.right,
-                inputFormatters: <TextInputFormatter>[
-                  FilteringTextInputFormatter.allow(RegExp(r'[0-9]*\.?[0-9]*'))
-                ],
-                decoration: InputDecoration(
-                    label: Text(dimensionType.name,
-                        style: Theme.of(context).textTheme.bodyMedium),
-                    suffixText: 'in', // Those are Americans...
-                    floatingLabelAlignment: FloatingLabelAlignment.start),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please input dimension';
-                  }
-                  return null;
-                },
-                controller: switch ((sizeType, dimensionType)) {
-                  (SizeType.large, DimensionType.short) => largeShortControl,
-                  (SizeType.large, DimensionType.long) => largeLongControl,
-                  (SizeType.small, DimensionType.short) => smallShortControl,
-                  (SizeType.small, DimensionType.long) => smallLongControl
-                })));
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: ReactiveTextField(
+        formControlName: "${paperSize.name}${dimension.name}",
+        onChanged: (control) =>
+            _dimensionChanged(paperSize, dimension, control.value as double?),
+        decoration: InputDecoration(labelText: dimension.name),
+        inputFormatters: [
+          FilteringTextInputFormatter.allow(RegExp(r'[0-9]*\.?[0-9]*'))
+        ],
+        keyboardType:
+            const TextInputType.numberWithOptions(signed: false, decimal: true),
+        maxLines: 1,
+        validationMessages: {
+          ValidationMessage.required: (error) => 'Please input dimension',
+          "dimension": (error) => 'Cannot be zero'
+        },
+      ),
+    ));
   }
 
-  Widget _dimensionField(BuildContext context, SizeType sizeType) {
-    return Container(
-      margin: const EdgeInsets.all(8.0),
-      child: Column(children: [
-        Text(
-          '${sizeType.name} Dimension',
-          style: Theme.of(context).textTheme.bodyLarge,
-        ),
-        Row(children: [
-          _textField(context, sizeType, DimensionType.short),
-          _textField(context, sizeType, DimensionType.long),
-        ])
-      ]),
-    );
+  Widget _inputAreaContainer(PaperSize size) {
+    return ReactiveFormConsumer(
+        builder: (context, form, child) => Container(
+              padding: const EdgeInsets.symmetric(vertical: 4),
+              margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+              decoration: BoxDecoration(
+                  color: form.hasError('area') || form.hasError(size.name)
+                      ? Theme.of(context).colorScheme.error.withAlpha(20)
+                      : null,
+                  borderRadius: BorderRadius.circular(4)),
+              child: Column(children: [
+                Text(
+                  '${size.name} Size',
+                  style: Theme.of(context).textTheme.bodyLarge,
+                ),
+                Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _inputField(size, Dimension.short),
+                      _inputField(size, Dimension.long)
+                    ]),
+              ]),
+            ));
   }
 
-  void _parseDimensions() {
-    if (_formKey.currentState!.validate()) {
-      double largeLong = double.tryParse(largeLongControl.text)!;
-      double largeShort = double.tryParse(largeShortControl.text)!;
-      double smallLong = double.tryParse(smallLongControl.text)!;
-      double smallShort = double.tryParse(smallShortControl.text)!;
-
-      double largeArea = largeLong * largeShort;
-      double smallArea = smallLong * smallShort;
-
-      if (largeArea > 0 && smallArea > 0 && largeArea > smallArea) {
-        setState(() {
-          msg = '';
-          packing = getBestPack(largeLong, largeShort, smallLong, smallShort);
-        });
-      } else {
-        setState(() {
-          msg = 'Parent sheet dimensions smaller than item dimensions';
-          packing = null;
-        });
-      }
-    } else {
-      setState(() {
-        packing = null;
-      });
+  String _getErrorText(FormGroup form) {
+    if (form.hasError('area')) {
+      return 'Parent sheet is too small for item';
+    } else if (form.hasError(PaperSize.large.name)) {
+      return 'Parent sheet must have a height greater than width';
+    } else if (form.hasError(PaperSize.small.name)) {
+      return 'Item sheet must have a height greater than width';
     }
+
+    return '';
   }
 
   @override
@@ -152,22 +210,42 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
         resizeToAvoidBottomInset: false,
         appBar: AppBar(title: const Text("Outs Calculator")),
-        body: Form(
-          key: _formKey,
-          child: Column(mainAxisAlignment: MainAxisAlignment.start, children: [
-            _dimensionField(context, SizeType.large),
-            _dimensionField(context, SizeType.small),
+        body: ReactiveForm(
+          formGroup: formGroup,
+          child: Column(children: [
+            _inputAreaContainer(PaperSize.large),
+            _inputAreaContainer(PaperSize.small),
+            ReactiveFormConsumer(builder: (context, form, child) {
+              return Container(
+                margin: const EdgeInsets.symmetric(horizontal: 4),
+                width: double.infinity,
+                child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        _getErrorText(form),
+                        style: Theme.of(context).textTheme.bodyMedium!.copyWith(
+                            color: Theme.of(context).colorScheme.error),
+                      ),
+                      ElevatedButton(
+                          onPressed: () {
+                            if (form.valid) {
+                              setState(() {
+                                packing = getBestPack(largeWidth!, largeHeight!,
+                                    smallWidth!, smallHeight!);
+                              });
+                            }
+                          },
+                          style: TextButton.styleFrom(
+                              foregroundColor:
+                                  Theme.of(context).colorScheme.primary),
+                          child: const Text('Calculate Outs'))
+                    ]),
+              );
+            }),
             Container(
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              width: double.infinity,
-              child: ElevatedButton(
-                  onPressed: _parseDimensions,
-                  style: TextButton.styleFrom(
-                      foregroundColor: Theme.of(context).colorScheme.primary),
-                  child: const Text('Calculate Outs')),
-            ),
-            Container(
-                margin: const EdgeInsets.all(8),
+                margin: const EdgeInsets.all(4),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
@@ -182,7 +260,18 @@ class _HomePageState extends State<HomePage> {
             Flexible(
                 fit: FlexFit.loose,
                 child: Container(
-                  margin: const EdgeInsets.all(16),
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.grey.withOpacity(0.5),
+                        spreadRadius: 5,
+                        blurRadius: 7,
+                        offset:
+                            const Offset(0, 3), // changes position of shadow
+                      ),
+                    ],
+                  ),
                   child: OutsLayoutWidget(packing),
                 )),
           ]),
