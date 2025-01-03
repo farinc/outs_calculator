@@ -12,7 +12,6 @@ typedef Style = ({
   TextPainter smallWidthText,
   TextPainter smallHeightText,
   Color measureColor,
-  Color backgroudTextColor,
   double measureLength
 });
 
@@ -30,17 +29,15 @@ typedef Margins = ({
   double dyBottom
 });
 
-TextStyle? _getAppMeasureStyle(
-    BuildContext context, Color measureColor, Color backgroudTextColor) {
-  return Theme.of(context).textTheme.titleLarge?.copyWith(
-      fontWeight: FontWeight.bold,
-      color: measureColor,
-      backgroundColor: backgroudTextColor);
+TextStyle? _getAppMeasureStyle(BuildContext context, Color measureColor) {
+  return Theme.of(context)
+      .textTheme
+      .titleLarge
+      ?.copyWith(fontWeight: FontWeight.bold, color: measureColor);
 }
 
 Style _getAppStyle(Layout layout, BuildContext context) {
   var measureColor = Colors.red;
-  var backgroudTextColor = Colors.white70;
   return (
     paintEdge: Paint()
       ..strokeWidth = 3
@@ -52,37 +49,32 @@ Style _getAppStyle(Layout layout, BuildContext context) {
     largeWidthText: TextPainter(
         text: TextSpan(
             text: layout.largeWidth.toString(),
-            style:
-                _getAppMeasureStyle(context, measureColor, backgroudTextColor)),
+            style: _getAppMeasureStyle(context, measureColor)),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center)
       ..layout(),
     largeHeightText: TextPainter(
         text: TextSpan(
             text: layout.largeHeight.toString(),
-            style:
-                _getAppMeasureStyle(context, measureColor, backgroudTextColor)),
+            style: _getAppMeasureStyle(context, measureColor)),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center)
       ..layout(),
     smallWidthText: TextPainter(
         text: TextSpan(
             text: layout.rects.first.width.toString(),
-            style:
-                _getAppMeasureStyle(context, measureColor, backgroudTextColor)),
+            style: _getAppMeasureStyle(context, measureColor)),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center)
       ..layout(),
     smallHeightText: TextPainter(
         text: TextSpan(
             text: layout.rects.first.height.toString(),
-            style:
-                _getAppMeasureStyle(context, measureColor, backgroudTextColor)),
+            style: _getAppMeasureStyle(context, measureColor)),
         textDirection: TextDirection.ltr,
         textAlign: TextAlign.center)
       ..layout(),
     measureColor: measureColor,
-    backgroudTextColor: backgroudTextColor,
     paintBorder: Paint()
       ..strokeWidth = 3
       ..style = PaintingStyle.stroke

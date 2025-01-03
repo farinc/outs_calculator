@@ -76,17 +76,16 @@ class _HomePageState extends State<HomePage> {
   final TextEditingController smallLongController = TextEditingController();
   final TextEditingController smallShortController = TextEditingController();
 
-  TextStyle? _getPdfMeasureStyle(Color measureColor, Color backgroudTextColor) {
+  TextStyle? _getPdfMeasureStyle(Color measureColor) {
     return TextStyle(
-        fontSize: 28,
-        fontWeight: FontWeight.bold,
-        color: measureColor,
-        backgroundColor: backgroudTextColor);
+      fontSize: 28,
+      fontWeight: FontWeight.bold,
+      color: measureColor,
+    );
   }
 
   Style? _getPdfStyle() {
     var measureColor = Colors.red;
-    var backgroudTextColor = Colors.transparent;
     if (packing == null) {
       return null;
     }
@@ -101,33 +100,32 @@ class _HomePageState extends State<HomePage> {
       largeWidthText: TextPainter(
           text: TextSpan(
               text: packing!.layout.largeWidth.toString(),
-              style: _getPdfMeasureStyle(measureColor, backgroudTextColor)),
+              style: _getPdfMeasureStyle(measureColor)),
           textDirection: TextDirection.ltr,
           textAlign: TextAlign.center)
         ..layout(),
       largeHeightText: TextPainter(
           text: TextSpan(
               text: packing!.layout.largeHeight.toString(),
-              style: _getPdfMeasureStyle(measureColor, backgroudTextColor)),
+              style: _getPdfMeasureStyle(measureColor)),
           textDirection: TextDirection.ltr,
           textAlign: TextAlign.center)
         ..layout(),
       smallWidthText: TextPainter(
           text: TextSpan(
               text: packing!.layout.rects.first.width.toString(),
-              style: _getPdfMeasureStyle(measureColor, backgroudTextColor)),
+              style: _getPdfMeasureStyle(measureColor)),
           textDirection: TextDirection.ltr,
           textAlign: TextAlign.center)
         ..layout(),
       smallHeightText: TextPainter(
           text: TextSpan(
               text: packing!.layout.rects.first.height.toString(),
-              style: _getPdfMeasureStyle(measureColor, backgroudTextColor)),
+              style: _getPdfMeasureStyle(measureColor)),
           textDirection: TextDirection.ltr,
           textAlign: TextAlign.center)
         ..layout(),
       measureColor: measureColor,
-      backgroudTextColor: backgroudTextColor,
       paintBorder: Paint()
         ..strokeWidth = 5
         ..style = PaintingStyle.stroke
@@ -201,9 +199,8 @@ class _HomePageState extends State<HomePage> {
       final actualLayoutPixelHeight =
           min(layoutPixelWidth / aspectRatio, layoutPixelHeight);
 
-      final actualDecorPixelHeight = min(
-          actualLayoutPixelHeight + margins.dyTop + margins.dyBottom,
-          layoutPixelHeight);
+      final actualDecorPixelHeight =
+          actualLayoutPixelHeight + margins.dyTop + margins.dyBottom;
 
       final decorImage = await decorPainter.renderCustomPainterToImage(
           totalPixellWidth, actualDecorPixelHeight, pdfStyle);
