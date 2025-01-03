@@ -153,15 +153,16 @@ abstract class StyledPainter extends CustomPainter {
   void paintStyled(Canvas canvas, Size size, Style customStyle);
 
   Future<ui.Image> renderCustomPainterToImage(
-      double imageWidth, double imageHeight, Style style) async {
+      int imageWidth, int imageHeight, Style style) async {
     final recorder = ui.PictureRecorder();
-    final canvas =
-        Canvas(recorder, Rect.fromLTWH(0, 0, imageWidth, imageHeight));
+    final canvas = Canvas(recorder,
+        Rect.fromLTWH(0, 0, imageWidth.toDouble(), imageHeight.toDouble()));
 
-    paintStyled(canvas, Size(imageWidth, imageHeight), style);
+    paintStyled(
+        canvas, Size(imageWidth.toDouble(), imageHeight.toDouble()), style);
 
     final picture = recorder.endRecording();
-    return picture.toImage(imageWidth.ceil(), imageHeight.ceil());
+    return picture.toImage(imageWidth, imageHeight);
   }
 }
 

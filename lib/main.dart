@@ -186,26 +186,29 @@ class _HomePageState extends State<HomePage> {
       final aspectRatio =
           packing!.layout.largeWidth / packing!.layout.largeHeight;
 
-      final totalPixellWidth = pageFormat.availableWidth / PdfPageFormat.dp;
-      final totalPixelHeight =
-          0.95 * pageFormat.availableHeight / PdfPageFormat.dp;
+      final totalPixelWidth = pageFormat.availableWidth / PdfPageFormat.dp;
+      final totalPixelHeight = pageFormat.availableHeight / PdfPageFormat.dp;
 
-      final layoutPixelWidth =
-          totalPixellWidth - (margins.dxLeft + margins.dxRight);
+      final scaleWidth = totalPixelWidth;
+      final scaleHeight = totalPixelHeight * aspectRatio;
+      final scale = scaleWidth < scaleHeight ? scaleWidth : scaleHeight;
 
-      final layoutPixelHeight =
-          totalPixelHeight - (margins.dyTop + margins.dyBottom);
+      final actualDecorPixelWidth = 0.95 * scale;
+      final actualDecorPixelHeight = 0.95 * scale / aspectRatio;
 
+      final actualLayoutPixelWidth =
+          actualDecorPixelWidth - (margins.dxLeft + margins.dxRight);
       final actualLayoutPixelHeight =
-          min(layoutPixelWidth / aspectRatio, layoutPixelHeight);
-
-      final actualDecorPixelHeight =
-          actualLayoutPixelHeight + margins.dyTop + margins.dyBottom;
+          actualDecorPixelHeight - (margins.dyTop + margins.dyBottom);
 
       final decorImage = await decorPainter.renderCustomPainterToImage(
-          totalPixellWidth, actualDecorPixelHeight, pdfStyle);
+          actualDecorPixelWidth.floor(),
+          actualDecorPixelHeight.floor(),
+          pdfStyle);
       final layoutImage = await layoutPainter.renderCustomPainterToImage(
-          layoutPixelWidth, actualLayoutPixelHeight, pdfStyle);
+          actualLayoutPixelWidth.floor(),
+          actualLayoutPixelHeight.floor(),
+          pdfStyle);
 
       final byteDataDecor =
           await decorImage.toByteData(format: ui.ImageByteFormat.png);
@@ -218,31 +221,41 @@ class _HomePageState extends State<HomePage> {
         final pdfImageDecor = pw.MemoryImage(byteDataDecorIntList);
         final pdfImageLayout = pw.MemoryImage(byteDataLayoutIntList);
 
+        final widthDecor = actualDecorPixelWidth * PdfPageFormat.dp;
+        final heightDecor = actualDecorPixelHeight * PdfPageFormat.dp;
+        final widthLayout = actualLayoutPixelWidth * PdfPageFormat.dp;
+        final heightLayout = actualLayoutPixelHeight * PdfPageFormat.dp;
+
         pdf.addPage(
           pw.Page(
             pageFormat: pageFormat,
             build: (context) {
-              return pw.Column(
-                children: [
-                  pw.Stack(alignment: pw.Alignment.center, children: [
-                    pw.Padding(
-                        padding: pw.EdgeInsets.fromLTRB(
-                            margins.dxLeft * PdfPageFormat.dp,
-                            margins.dyTop * PdfPageFormat.dp,
-                            margins.dxRight * PdfPageFormat.dp,
-                            margins.dyBottom * PdfPageFormat.dp),
-                        child: pw.Image(pdfImageLayout)),
-                    pw.Image(pdfImageDecor)
-                  ]),
-                  pw.Text(
-                      "Outs: ${packing!.outs}, Efficiency: ${packing!.fill.toStringAsFixed(2)}%",
-                      style: pw.TextStyle(
-                          fontSize: 14,
-                          fontWeight: pw.FontWeight.bold,
-                          color: PdfColors.red)),
-                  pw.Center()
-                ],
-              );
+              // return pw.Column(children: [
+
+              return pw.Center(
+                  child: pw.Column(
+                      mainAxisAlignment: pw.MainAxisAlignment.center,
+                      children: [
+                    pw.Text(
+                        "Outs: ${packing!.outs}, Efficiency: ${packing!.fill.toStringAsFixed(2)}%",
+                        style: pw.TextStyle(
+                            fontSize: 14,
+                            fontWeight: pw.FontWeight.bold,
+                            color: PdfColors.red)),
+                    pw.Stack(alignment: pw.Alignment.center, children: [
+                      pw.Image(pdfImageDecor,
+                          height: heightDecor, width: widthDecor),
+                      pw.Padding(
+                          padding: pw.EdgeInsets.fromLTRB(
+                              margins.dxLeft * PdfPageFormat.dp,
+                              margins.dyTop * PdfPageFormat.dp,
+                              margins.dxRight * PdfPageFormat.dp,
+                              margins.dyBottom * PdfPageFormat.dp),
+                          child: pw.Image(pdfImageLayout,
+                              height: heightLayout, width: widthLayout)),
+                    ])
+                  ]));
+              // ]);
             },
           ),
         );
@@ -350,7 +363,7 @@ class _HomePageState extends State<HomePage> {
                     final pdf =
                         _generatePdf(_getOptimalPageFormat(defaultPaper));
                     final filename =
-                        "${packing!.layout.smallWidth}x${packing!.layout.smallHeight}_in_${packing!.layout.largeWidth}x${packing!.layout.largeWidth}_layout.pdf";
+                        "${packing!.layout.smallWidth}x${packing!.layout.smallHeight}_in_${packing!.layout.largeWidth}x${packing!.layout.largeHeight}_layout.pdf";
                     pdf.then((Uint8List value) =>
                         Printing.sharePdf(filename: filename, bytes: value));
                   }
