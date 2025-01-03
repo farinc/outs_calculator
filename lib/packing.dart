@@ -5,7 +5,9 @@ typedef Packing = ({double fill, int outs, Layout layout});
 typedef Layout = ({
   List<ItemRectangle> rects,
   double largeWidth,
-  double largeHeight
+  double largeHeight,
+  double smallWidth,
+  double smallHeight
 });
 
 class ItemRectangle extends Rectangle {
@@ -139,12 +141,17 @@ Packing _pack(double largeWidth, double largeHeight, double smallWidth,
   } while (hasSpace);
 
   var outs = layout.length;
-  var maxOuts =
-      ((largeWidth * largeHeight) / (smallWidth * smallHeight)).floor();
+  var maxOuts = (largeWidth * largeHeight) / (smallWidth * smallHeight);
   var fill = outs / maxOuts * 100;
   return (
     fill: fill,
     outs: outs,
-    layout: (largeHeight: largeHeight, largeWidth: largeWidth, rects: layout)
+    layout: (
+      largeHeight: largeHeight,
+      largeWidth: largeWidth,
+      smallWidth: smallWidth,
+      smallHeight: smallHeight,
+      rects: layout
+    )
   );
 }
